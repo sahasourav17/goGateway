@@ -1,0 +1,33 @@
+FROM golang:1.23.10-alpine3.22 AS builder
+
+# set the working directory
+WORKDIR /app
+
+# copy the go mod and sum files
+COPY go.mod go.sum ./
+
+# download all dependencies
+RUN go mod download
+
+# copy the source code
+COPY . .
+
+# build the binary
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/gateway ./cmd/gateway
+
+# final stage
+FROM alpine:3.22
+
+WORKDIR /root/
+
+# copy the pre-built binary from previous stage
+COPY --from=builder /app/gateway .
+
+# copy the config file
+COPY config/config.json ./config/
+
+# expose the port
+EXPOSE 8080
+
+# run the binary
+CMD ["./gateway"]

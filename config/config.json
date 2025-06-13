@@ -2,11 +2,11 @@
   "services": {
     "users_service": {
       "name": "users_service",
-      "url": "http://localhost:8081"
+      "url": "http://users_service:8081"
     },
     "orders_service": {
       "name": "orders_service",
-      "url": "http://localhost:8082"
+      "url": "http://orders_service:8082"
     }
   },
   "routes": [

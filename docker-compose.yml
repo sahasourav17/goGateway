@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  users_service:
+    build:
+      context: .
+      dockerfile: Dockerfile.services
+    command: ["./services", "Users-Service", "8081"]
+
+  orders_service:
+    build:
+      context: .
+      dockerfile: Dockerfile.services
+    command: ["./services", "Orders-Service", "8082"]
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    ports:
+      # Map port 8080 on our host to port 8080 in the container
+      - "8080:8080"
+    # Make the gateway wait for the services to be built before it starts
+    depends_on:
+      - users_service
+      - orders_service

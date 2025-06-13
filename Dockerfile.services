@@ -1,0 +1,20 @@
+FROM golang:1.23.10-alpine3.22 AS builder
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+# Build the generic service executable
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/services ./cmd/services
+
+FROM alpine:3.22
+
+WORKDIR /root/
+
+COPY --from=builder /app/services .
+
+
+CMD ["./services"]
