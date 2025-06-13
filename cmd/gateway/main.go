@@ -1,19 +1,14 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"os"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/hashicorp/consul/api"
-	"github.com/sahasourav17/goGetway.git/internal/config"
+	"github.com/sahasourav17/goGetway.git/internal/gateway"
 )
 
 func main() {
@@ -33,55 +28,28 @@ func main() {
 		log.Fatalf("Could not create consul client: %v", err)
 	}
 
-	kvPair, _, err := consulClient.KV().Get("gateway/config", nil)
-	if err != nil {
-		log.Fatalf("Failed to fetch config from consul: %v", err)
-	}
-	if kvPair == nil {
-		log.Fatal("Gateway configuration not found in Consul at key 'gateway/config'")
-	}
-
-	var cfg config.Config
-	if err := json.Unmarshal(kvPair.Value, &cfg); err != nil {
-		log.Fatalf("Error parsing config from consul: %v", err)
-	}
-
 	gatewayPort := 8080
 
-	// create a chi router
-	r := chi.NewRouter()
+	gateway.UpdateRouter(consulClient)
 
-	// add middleware
-	r.Use(middleware.RequestID)
-	r.Use(middleware.Logger)
+	go gateway.WatchConsul(consulClient)
 
-	for _, route := range cfg.Routes {
-		service, ok := cfg.Services[route.ServiceName]
-		if !ok {
-			log.Printf("Service '%s' for route '%s' not found in config, skipping.", route.ServiceName, route.PathPrefix)
-			continue
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		gateway.RouterMutex.RLock()
+		router := gateway.CurrentRouter
+		gateway.RouterMutex.RUnlock()
+
+		if router != nil {
+			router.ServeHTTP(w, r)
+		} else {
+			http.Error(w, "Gateway not yet configured", http.StatusServiceUnavailable)
 		}
-
-		targetURL, err := url.Parse(service.URL)
-		if err != nil {
-			log.Printf("Could not parse URL for service '%s': %v", service.Name, err)
-			continue
-		}
-
-		// reverse proxy for specific service
-		proxy := httputil.NewSingleHostReverseProxy(targetURL)
-
-		path := route.PathPrefix
-		r.Handle(path+"/*", http.StripPrefix(path, proxy))
-
-		r.Handle(path+"/*", http.StripPrefix(path, proxy))
-		log.Printf("Setting up route: %s -> %s", path, service.URL)
-	}
+	})
 
 	log.Printf("API Gateway listening on port %d...", gatewayPort)
 
 	// start the api gateway server
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", gatewayPort), r); err != nil {
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", gatewayPort), nil); err != nil {
 		log.Fatalf("Could not start gateway: %v", err)
 	}
 }
