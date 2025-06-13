@@ -8,23 +8,42 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/hashicorp/consul/api"
 	"github.com/sahasourav17/goGetway.git/internal/config"
 )
 
 func main() {
 
-	// load the configuration file
-	configFile, err := os.ReadFile("./config/config.json")
+	consulAddr := os.Getenv("CONSUL_ADDRESS")
+	if consulAddr == "" {
+		log.Println("CONSUL_ADDRESS not set, defaulting to localhost:8500")
+		consulAddr = "localhost:8500"
+	}
+	consulAddr = strings.Trim(consulAddr, "\"")
+
+	consulConfig := api.DefaultConfig()
+	consulConfig.Address = consulAddr
+
+	consulClient, err := api.NewClient(consulConfig)
 	if err != nil {
-		log.Fatalf("Could not read config file: %v", err)
+		log.Fatalf("Could not create consul client: %v", err)
+	}
+
+	kvPair, _, err := consulClient.KV().Get("gateway/config", nil)
+	if err != nil {
+		log.Fatalf("Failed to fetch config from consul: %v", err)
+	}
+	if kvPair == nil {
+		log.Fatal("Gateway configuration not found in Consul at key 'gateway/config'")
 	}
 
 	var cfg config.Config
-	if err := json.Unmarshal(configFile, &cfg); err != nil {
-		log.Fatalf("Could not parse config file: %v", err)
+	if err := json.Unmarshal(kvPair.Value, &cfg); err != nil {
+		log.Fatalf("Error parsing config from consul: %v", err)
 	}
 
 	gatewayPort := 8080
@@ -58,7 +77,6 @@ func main() {
 		r.Handle(path+"/*", http.StripPrefix(path, proxy))
 		log.Printf("Setting up route: %s -> %s", path, service.URL)
 	}
-
 
 	log.Printf("API Gateway listening on port %d...", gatewayPort)
 

@@ -1,6 +1,13 @@
 version: '3.8'
 
 services:
+  consul:
+    image: consul:1.15.4
+    container_name: consul
+    ports:
+      - "8500:8500"
+    command: "agent -dev -client=0.0.0.0 -ui"
+
   users_service:
     build:
       context: .
@@ -24,3 +31,7 @@ services:
     depends_on:
       - users_service
       - orders_service
+      - consul
+
+    environment:
+      - CONSUL_ADDRESS="consul:8500"
