@@ -4,25 +4,23 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 )
 
 func main() {
+	if len(os.Args) < 3 {
+		log.Fatal("Usage: go run main.go <service-name> <port>")
+	}
+	serviceName := os.Args[1]
+	port := os.Args[2]
 
-	port := 8081
-
-	// handler
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Log the request
-		log.Printf("Received request from %s on mock service", r.RemoteAddr)
-
-		// Respond to the client
-		fmt.Fprintf(w, "Hello from the Mock Backend Service! You've reached path: %s\n", r.URL.Path)
+		log.Printf("Request received on %s", serviceName)
+		fmt.Fprintf(w, "Hello from the %s! You've reached path: %s\n", serviceName, r.URL.Path)
 	})
 
-	log.Printf("Mock service listening on port %d...", port)
-
-	// Start the server
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil); err != nil {
+	log.Printf("%s listening on port %s...", serviceName, port)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Could not start mock service: %v", err)
 	}
 }

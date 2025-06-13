@@ -1,0 +1,22 @@
+{
+  "services": {
+    "users_service": {
+      "name": "users_service",
+      "url": "http://localhost:8081"
+    },
+    "orders_service": {
+      "name": "orders_service",
+      "url": "http://localhost:8082"
+    }
+  },
+  "routes": [
+    {
+      "path_prefix": "/api/users",
+      "service_name": "users_service"
+    },
+    {
+      "path_prefix": "/api/orders",
+      "service_name": "orders_service"
+    }
+  ]
+}

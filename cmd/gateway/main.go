@@ -1,26 +1,33 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/sahasourav17/goGetway.git/internal/config"
 )
 
 func main() {
-	gatewayPort := 8080
 
-	targetServiceUrl, err := url.Parse("http://localhost:8081")
+	// load the configuration file
+	configFile, err := os.ReadFile("./config/config.json")
 	if err != nil {
-		log.Fatalf("Invalid target service URL: %v", err)
+		log.Fatalf("Could not read config file: %v", err)
 	}
 
-	// create a reverse proxy
-	proxy := httputil.NewSingleHostReverseProxy(targetServiceUrl)
+	var cfg config.Config
+	if err := json.Unmarshal(configFile, &cfg); err != nil {
+		log.Fatalf("Could not parse config file: %v", err)
+	}
+
+	gatewayPort := 8080
 
 	// create a chi router
 	r := chi.NewRouter()
@@ -29,12 +36,31 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 
-	// define route to proxy
-	routeToProxy := "/api/users"
+	for _, route := range cfg.Routes {
+		service, ok := cfg.Services[route.ServiceName]
+		if !ok {
+			log.Printf("Service '%s' for route '%s' not found in config, skipping.", route.ServiceName, route.PathPrefix)
+			continue
+		}
 
-	r.Handle(routeToProxy+"/*", http.StripPrefix(routeToProxy, proxy))
+		targetURL, err := url.Parse(service.URL)
+		if err != nil {
+			log.Printf("Could not parse URL for service '%s': %v", service.Name, err)
+			continue
+		}
 
-	log.Printf("APIGateway listening on port %d...", gatewayPort)
+		// reverse proxy for specific service
+		proxy := httputil.NewSingleHostReverseProxy(targetURL)
+
+		path := route.PathPrefix
+		r.Handle(path+"/*", http.StripPrefix(path, proxy))
+
+		r.Handle(path+"/*", http.StripPrefix(path, proxy))
+		log.Printf("Setting up route: %s -> %s", path, service.URL)
+	}
+
+
+	log.Printf("API Gateway listening on port %d...", gatewayPort)
 
 	// start the api gateway server
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", gatewayPort), r); err != nil {
