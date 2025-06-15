@@ -8,6 +8,12 @@ services:
       - "8500:8500"
     command: "agent -dev -client=0.0.0.0 -ui"
 
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+
   users_service:
     build:
       context: .
@@ -32,6 +38,9 @@ services:
       - users_service
       - orders_service
       - consul
+      - redis
 
     environment:
       - CONSUL_ADDRESS="consul:8500"
+      - REDIS_ADDRESS="redis:6379"
+      - JWT_SECRET_KEY=fast-secure-scalable-api-gw-built-from-scratch

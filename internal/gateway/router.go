@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-redis/redis/v8"
 	"github.com/hashicorp/consul/api"
 	"github.com/sahasourav17/goGateway.git/internal/config"
 	"github.com/sahasourav17/goGateway.git/internal/middleware"
@@ -25,7 +26,7 @@ var (
 
 const consulKey = "gateway/config"
 
-func UpdateRouter(consulClient *api.Client) {
+func UpdateRouter(consulClient *api.Client, redisClient *redis.Client) {
 	log.Println("Updating router configuration from Consul...")
 	kvPair, _, err := consulClient.KV().Get(consulKey, nil)
 	if err != nil || kvPair == nil {
@@ -43,6 +44,8 @@ func UpdateRouter(consulClient *api.Client) {
 	r.Use(chi_middleware.RequestID)
 	r.Use(middleware.NewStructuredLogger(middleware.InitLogger()))
 	r.Use(chi_middleware.Recoverer)
+	log.Println("Applying global rate limit: 20 requests/minute")
+	r.Use(middleware.RateLimiter(redisClient, 20, 1*time.Minute))
 
 	for _, route := range cfg.Routes {
 		service, ok := cfg.Services[route.ServiceName]
@@ -77,7 +80,7 @@ func UpdateRouter(consulClient *api.Client) {
 	log.Println("Router configuration updated successfully.")
 }
 
-func WatchConsul(consulClient *api.Client) {
+func WatchConsul(consulClient *api.Client, redisClient *redis.Client) {
 	var lastIndex uint64
 	for {
 		opts := &api.QueryOptions{
@@ -93,7 +96,7 @@ func WatchConsul(consulClient *api.Client) {
 		// if index is different, it means the config has changed
 		if meta.LastIndex != lastIndex {
 			if kvPair != nil {
-				UpdateRouter(consulClient)
+				UpdateRouter(consulClient, redisClient)
 				lastIndex = meta.LastIndex
 			}
 		}

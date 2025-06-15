@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/hashicorp/consul/api"
 	"github.com/sahasourav17/goGateway.git/internal/gateway"
 )
@@ -28,11 +29,22 @@ func main() {
 		log.Fatalf("Could not create consul client: %v", err)
 	}
 
+	redisAddr := os.Getenv("REDIS_ADDRESS")
+	if redisAddr == "" {
+		log.Println("REDIS_ADDRESS not set, defaulting to localhost:6379")
+		redisAddr = "localhost:6379"
+	}
+	redisAddr = strings.Trim(redisAddr, "\"")
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: redisAddr,
+	})
+
 	gatewayPort := 8080
 
-	gateway.UpdateRouter(consulClient)
+	gateway.UpdateRouter(consulClient, redisClient)
 
-	go gateway.WatchConsul(consulClient)
+	go gateway.WatchConsul(consulClient, redisClient)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		gateway.RouterMutex.RLock()
