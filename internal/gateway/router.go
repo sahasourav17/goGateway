@@ -10,9 +10,10 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/hashicorp/consul/api"
 	"github.com/sahasourav17/goGetway.git/internal/config"
+	"github.com/sahasourav17/goGetway.git/internal/middleware"
 )
 
 var (
@@ -39,8 +40,9 @@ func UpdateRouter(consulClient *api.Client) {
 	}
 
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(middleware.Logger)
+	r.Use(chi_middleware.RequestID)
+	r.Use(middleware.NewStructuredLogger(middleware.InitLogger()))
+	r.Use(chi_middleware.Recoverer)
 
 	for _, route := range cfg.Routes {
 		service, ok := cfg.Services[route.ServiceName]
