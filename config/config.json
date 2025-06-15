@@ -12,11 +12,18 @@
   "routes": [
     {
       "path_prefix": "/api/users",
-      "service_name": "users_service"
+      "service_name": "users_service",
+      "auth_required": true
     },
     {
       "path_prefix": "/api/orders",
-      "service_name": "orders_service"
+      "service_name": "orders_service",
+      "auth_required": true
+    },
+    {
+      "path_prefix": "/public/users",
+      "service_name": "users_service",
+      "auth_required": false
     }
   ]
 }

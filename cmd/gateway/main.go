@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/sahasourav17/goGetway.git/internal/gateway"
+	"github.com/sahasourav17/goGateway.git/internal/gateway"
 )
 
 func main() {

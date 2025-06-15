@@ -12,8 +12,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/hashicorp/consul/api"
-	"github.com/sahasourav17/goGetway.git/internal/config"
-	"github.com/sahasourav17/goGetway.git/internal/middleware"
+	"github.com/sahasourav17/goGateway.git/internal/config"
+	"github.com/sahasourav17/goGateway.git/internal/middleware"
 )
 
 var (
@@ -59,8 +59,14 @@ func UpdateRouter(consulClient *api.Client) {
 
 		proxy := httputil.NewSingleHostReverseProxy(targetURL)
 		path := route.PathPrefix
-		log.Println("Adding route:", path)
-		r.Handle(path+"/*", http.StripPrefix(path, proxy))
+
+		var handler http.Handler = http.StripPrefix(path, proxy)
+		if route.AuthRequired {
+			handler = middleware.AuthMiddleware(handler)
+		}
+
+		r.Handle(path+"/*", handler)
+		log.Printf("Setting up route: %s -> %s (Auth: %v)", path, service.URL, route.AuthRequired)
 	}
 
 	// Replace the current router with the new one

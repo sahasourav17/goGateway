@@ -11,6 +11,7 @@ type Service struct {
 }
 
 type Route struct {
-	PathPrefix  string `json:"path_prefix"`
-	ServiceName string `json:"service_name"`
+	PathPrefix   string `json:"path_prefix"`
+	ServiceName  string `json:"service_name"`
+	AuthRequired bool   `json:"auth_required"`
 }

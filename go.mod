@@ -1,4 +1,4 @@
-module github.com/sahasourav17/goGetway.git
+module github.com/sahasourav17/goGateway.git
 
 go 1.23.8
 
