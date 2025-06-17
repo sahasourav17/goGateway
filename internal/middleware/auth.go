@@ -36,8 +36,15 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "Invalid token: user_id claim missing or not a string", http.StatusUnauthorized)
 			return
 		}
-
 		r.Header.Set("X-User-ID", userID)
+
+		tier, ok := claims["tier"].(string)
+		if !ok {
+			tier = "default"
+		}
+
+		r.Header.Set("X-User-Tier", tier)
+
 		next.ServeHTTP(w, r)
 	})
 }

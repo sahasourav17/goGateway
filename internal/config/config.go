@@ -5,6 +5,11 @@ type MiddlewareConfig struct {
 }
 
 type RateLimitConfig struct {
+	Tiers map[string]TierLimit `json:"tiers"`
+}
+
+// TierLimit represents request limit and window for a specific tier
+type TierLimit struct {
 	Requests int `json:"requests"`
 	Window   int `json:"window_seconds"`
 }

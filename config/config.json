@@ -15,21 +15,30 @@
       "service_name": "users_service",
       "auth_required": true,
       "middleware": {
-        "rate_limit": { "requests": 5, "window_seconds": 60 }
+        "rate_limit": {
+          "tiers": {
+            "default": { "requests": 10, "window_seconds": 60 },
+            "premium": { "requests": 100, "window_seconds": 60 }
+          }
+        }
       }
     },
     {
       "path_prefix": "/api/orders",
       "service_name": "orders_service",
-      "auth_required": true,
-      "middleware": {
-        "rate_limit": { "requests": 25, "window_seconds": 60 }
-      }
+      "auth_required": true
     },
     {
       "path_prefix": "/public/users",
       "service_name": "users_service",
-      "auth_required": false
+      "auth_required": false,
+      "middleware": {
+        "rate_limit": {
+          "tiers": {
+            "default": { "requests": 5, "window_seconds": 60 }
+          }
+        }
+      }
     }
   ]
 }
