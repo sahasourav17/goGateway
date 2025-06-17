@@ -67,7 +67,7 @@ func UpdateRouter(consulClient *api.Client, redisClient *redis.Client) {
 		if route.Middleware.RateLimit != nil {
 			cfg := route.Middleware.RateLimit
 			log.Printf("Applying rate limit to %s: %d requests per %d seconds", path, cfg.Requests, cfg.Window)
-			handler = middleware.RateLimiter(redisClient, cfg.Requests, time.Duration(cfg.Window)*time.Second)(handler)
+			handler = middleware.RateLimiter(redisClient, cfg.Requests, time.Duration(cfg.Window)*time.Second, path)(handler)
 		}
 
 		// auth check

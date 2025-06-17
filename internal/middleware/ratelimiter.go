@@ -12,17 +12,20 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-func RateLimiter(redisClient *redis.Client, limit int, window time.Duration) func(http.Handler) http.Handler {
+func RateLimiter(redisClient *redis.Client, limit int, window time.Duration, routePathPrefix string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := context.Background()
 
-			ip, _, err := net.SplitHostPort(r.RemoteAddr)
-			if err != nil {
-				ip = r.RemoteAddr // fallback if SplitHostPort fails for non-standard ip addresses
+			identifier := r.Header.Get("X-User-ID")
+			if identifier == "" {
+				identifier = r.RemoteAddr
+				ip, _, err := net.SplitHostPort(identifier)
+				if err == nil {
+					identifier = ip
+				}
 			}
-
-			key := fmt.Sprintf("ratelimit:%s", ip)
+			key := fmt.Sprintf("ratelimit:%s:%s", routePathPrefix, identifier)
 
 			now := time.Now().UnixNano()
 
@@ -43,7 +46,7 @@ func RateLimiter(redisClient *redis.Client, limit int, window time.Duration) fun
 			pipe.Expire(ctx, key, window)
 
 			// Execute all commands in the pipeline.
-			_, err = pipe.Exec(ctx)
+			_, err := pipe.Exec(ctx)
 
 			if err != nil {
 				log.Printf("Error executing rate limiter pipeline: %v", err)
