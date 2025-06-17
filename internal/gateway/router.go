@@ -44,8 +44,6 @@ func UpdateRouter(consulClient *api.Client, redisClient *redis.Client) {
 	r.Use(chi_middleware.RequestID)
 	r.Use(middleware.NewStructuredLogger(middleware.InitLogger()))
 	r.Use(chi_middleware.Recoverer)
-	log.Println("Applying global rate limit: 20 requests/minute")
-	r.Use(middleware.RateLimiter(redisClient, 20, 1*time.Minute))
 
 	for _, route := range cfg.Routes {
 		service, ok := cfg.Services[route.ServiceName]
@@ -64,6 +62,15 @@ func UpdateRouter(consulClient *api.Client, redisClient *redis.Client) {
 		path := route.PathPrefix
 
 		var handler http.Handler = http.StripPrefix(path, proxy)
+
+		// rate limit
+		if route.Middleware.RateLimit != nil {
+			cfg := route.Middleware.RateLimit
+			log.Printf("Applying rate limit to %s: %d requests per %d seconds", path, cfg.Requests, cfg.Window)
+			handler = middleware.RateLimiter(redisClient, cfg.Requests, time.Duration(cfg.Window)*time.Second)(handler)
+		}
+
+		// auth check
 		if route.AuthRequired {
 			handler = middleware.AuthMiddleware(handler)
 		}

@@ -13,12 +13,18 @@
     {
       "path_prefix": "/api/users",
       "service_name": "users_service",
-      "auth_required": true
+      "auth_required": true,
+      "middleware": {
+        "rate_limit": { "requests": 5, "window_seconds": 60 }
+      }
     },
     {
       "path_prefix": "/api/orders",
       "service_name": "orders_service",
-      "auth_required": true
+      "auth_required": true,
+      "middleware": {
+        "rate_limit": { "requests": 25, "window_seconds": 60 }
+      }
     },
     {
       "path_prefix": "/public/users",
