@@ -18,6 +18,9 @@ A lightweight and scalable API Gateway in Go designed for microservice architect
 - **Observability:** Structured JSON logging for easy parsing and analysis.
 - **Containerized:** The entire environment (gateway, services, Consul, Redis) is managed via Docker Compose for easy, one-command setup.
 
+## Architecture Diagram
+![goGateway Architecture](./images/goGateway-architecture.png)
+
 ## Getting Started
 
 ### Prerequisites

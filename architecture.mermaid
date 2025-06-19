@@ -1,0 +1,42 @@
+graph TD
+
+    subgraph "External World"
+        Client[<i class='fa fa-user'></i> Client App/Browser]
+    end
+
+    subgraph "Docker Environment (docker-compose)"
+        subgraph goGateway
+            G1[<i class='fa fa-shield-alt'></i> Gateway Container]
+        end
+
+        subgraph Backing Services
+            Consul[<i class='fa fa-cogs'></i> Consul Container<br/><i>Routing Config</i>]
+            Redis[<i class='fa fa-database'></i> Redis Container<br/><i>Rate Limit State</i>]
+        end
+
+        subgraph Downstream Microservices
+            US[<i class='fa fa-users'></i> users_service]
+            OS[<i class='fa fa-box'></i> orders_service]
+        end
+    end
+
+    %% Define connections
+    Client -->|HTTP Request to localhost:8080| G1;
+
+    G1 <.->|Reads Config / Watches| Consul;
+    G1 <.->|Reads/Writes Rate Limit Counts| Redis;
+    G1 -->|Proxies Request| US;
+    G1 -->|Proxies Request| OS;
+
+
+    %% Show the detailed internal flow within the Gateway container
+    subgraph G1
+        direction LR
+        A[<b>Inbound Request</b>] --> B{Router};
+        B --> C(Logging);
+        C --> D(Auth);
+        D --> E(Rate Limiter);
+        E --> F(Circuit Breaker);
+        F --> G[Reverse Proxy];
+        G --> H[<b>Outbound Request to Service</b>];
+    end
