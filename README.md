@@ -62,7 +62,7 @@ To access protected routes, you need a valid JWT.
 
 1.  Go to **jwt.io**.
 2.  Set the algorithm to **HS256**.
-3.  Set the secret key to `a_very_insecure_default_secret`.
+3.  Set the secret key to `fast-secure-scalable-api-gw-built-from-scratch` or you can change it to whatever you want
 4.  Use one of the following payloads:
     - **Default User:** `{"user_id": "user-default-123"}`
     - **Premium User:** `{"user_id": "user-premium-456", "tier": "premium"}`
