@@ -63,6 +63,9 @@ func UpdateRouter(consulClient *api.Client, redisClient *redis.Client) {
 
 		var handler http.Handler = http.StripPrefix(path, proxy)
 
+		// circuit breaker
+		handler = middleware.CircuitBreaker(handler, route.ServiceName)
+
 		// rate limit
 		if route.Middleware.RateLimit != nil {
 			log.Printf("Applying rate limit to %s", path)
